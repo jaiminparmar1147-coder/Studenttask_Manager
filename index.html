@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyFlow - Student Task Manager</title>
+
+  <!-- React + ReactDOM + Babel (CDN) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- ===================== CSS ===================== -->
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+    button { font-family: inherit; }
+
+    /* Navbar */
+    .navbar {
+      position: sticky; top: 0; z-index: 20;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 40px; background: var(--card); box-shadow: var(--shadow);
+    }
+    .logo { color: var(--primary); font-size: 1.4rem; }
+    .nav-links { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .nav-btn {
+      background: none; border: none; color: var(--text);
+      padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 1rem;
+    }
+    .nav-btn:hover { background: var(--border); }
+    .nav-btn.active { background: var(--primary); color: white; }
+
+    .container { max-width: 1050px; margin: auto; padding: 30px 20px 60px; }
+    .page-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+    .page-head h1 { font-size: 1.7rem; }
+    .muted { color: var(--muted); }
+    .link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.85rem; }
+    .link-btn:hover { text-decoration: underline; }
+
+    /* Stat cards */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat {
+      background: var(--card); padding: 20px; border-radius: 14px;
+      box-shadow: var(--shadow); border-left: 5px solid var(--primary);
+    }
+    .stat .num { font-size: 2rem; font-weight: 700; }
+    .stat.green { border-color: var(--success); }
+    .stat.orange { border-color: var(--warning); }
+    .stat.red { border-color: var(--danger); }
+
+    .panel { background: var(--card); padding: 22px; border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .panel h3 { margin-bottom: 14px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+    .bar { height: 10px; background: var(--border); border-radius: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 10px; transition: width 0.4s; }
+    .subject-row { margin-bottom: 14px; }
+    .subject-row .top { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
+
+    .mini-task { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+    .mini-task:last-child { border-bottom: none; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 22px; background: var(--primary); color: white; border: none;
+      border-radius: 10px; font-size: 1rem; cursor: pointer;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn.secondary { background: var(--border); color: var(--text); }
+    .btn.secondary:hover { background: var(--muted); color: white; }
+
+    /* Controls */
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+    .controls input, .controls select {
+      padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+      background: var(--card); color: var(--text); font-size: 0.95rem; outline: none;
+    }
+    .controls input { flex: 1; min-width: 200px; }
+    .controls input:focus { border-color: var(--primary); }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .chip {
+      padding: 6px 16px; border-radius: 20px; cursor: pointer;
+      border: 1px solid var(--primary); background: var(--card); color: var(--primary);
+    }
+    .chip.active { background: var(--primary); color: white; }
+
+    /* Task item */
+    .task {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--card); padding: 16px 18px; border-radius: 12px;
+      box-shadow: var(--shadow); margin-bottom: 12px; border-left: 5px solid var(--primary);
+    }
+    .task.done .title { text-decoration: line-through; color: var(--muted); }
+    .task input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary); }
+    .task .info { flex: 1; }
+    .task .title { font-weight: 600; font-size: 1.05rem; }
+    .task .notes { color: var(--muted); font-size: 0.88rem; margin-top: 2px; }
+    .tags { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; font-size: 0.8rem; }
+    .tag { padding: 3px 10px; border-radius: 10px; font-weight: 600; }
+    .tag.p-High { background: #fee2e2; color: #b91c1c; }
+    .tag.p-Medium { background: #fef3c7; color: #b45309; }
+    .tag.p-Low { background: #dcfce7; color: #15803d; }
+    .tag.due { background: var(--border); color: var(--text); }
+    .tag.overdue { background: var(--danger); color: white; }
+    .icon-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 6px; border-radius: 8px; }
+    .icon-btn:hover { background: var(--border); }
+    .empty { text-align: center; padding: 50px 0; color: var(--muted); font-size: 1.1rem; }
+
+    /* Modal */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+      display: flex; justify-content: center; align-items: center; z-index: 50; padding: 16px;
+    }
+    .modal { background: var(--card); width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; border-radius: 16px; padding: 26px; }
+    .modal h2 { margin-bottom: 16px; }
+    .form { display: flex; flex-direction: column; gap: 12px; }
+    .form label { font-weight: 600; font-size: 0.9rem; }
+    .form input, .form select, .form textarea {
+      padding: 11px; border: 2px solid var(--border); border-radius: 10px;
+      background: var(--bg); color: var(--text); font-size: 1rem; font-family: inherit; width: 100%;
+    }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+    .footer { text-align: center; padding: 24px; color: var(--muted); }
+
+    @media (max-width: 700px) {
+      .navbar { padding: 12px 16px; flex-direction: column; gap: 8px; }
+      .two-col { grid-template-columns: 1fr; }
+      .row { flex-direction: column; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- ===================== JavaScript + React ===================== -->
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    /* ---------- CONSTANTS ---------- */
+    const SUBJECTS = {
+      Maths: "#6366f1",
+      Physics: "#0ea5e9",
+      Chemistry: "#10b981",
+      Programming: "#f59e0b",
+      English: "#ec4899",
+      Other: "#64748b",
+    };
+    const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2 };
+
+    const QUOTES = [
+      "Small progress each day adds up to big results.",
+      "Don't watch the clock; do what it does. Keep going.",
+      "Start where you are. Use what you have. Do what you can.",
+      "Discipline is choosing between what you want now and what you want most.",
+    ];
+
+    /* ---------- DATE HELPERS ---------- */
+    function dateString(offsetDays) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+
+    function daysLeft(due) {
+      if (!due) return null;
+      const today = new Date(dateString(0) + "T00:00:00");
+      const target = new Date(due + "T00:00:00");
+      return Math.round((target - today) / 86400000);
+    }
+
+    function dueText(due) {
+      const n = daysLeft(due);
+      if (n === null) return "No due date";
+      if (n < 0) return "Overdue by " + Math.abs(n) + " day" + (Math.abs(n) > 1 ? "s" : "");
+      if (n === 0) return "Due today";
+      if (n === 1) return "Due tomorrow";
+      return n + " days left";
+    }
+
+    const isOverdue = (t) => !t.done && daysLeft(t.due) !== null && daysLeft(t.due) < 0;
+
+    /* ---------- SAMPLE DATA (first time only) ---------- */
+    const sampleTasks = [
+      { id: 1, title: "Solve Calculus assignment", subject: "Maths", priority: "High", due: dateString(1), done: false, notes: "Chapter 5 exercises" },
+      { id: 2, title: "Physics lab report", subject: "Physics", priority: "Medium", due: dateString(3), done: false, notes: "" },
+      { id: 3, title: "Build React project", subject: "Programming", priority: "High", due: dateString(5), done: false, notes: "Make it responsive" },
+      { id: 4, title: "Revise organic chemistry", subject: "Chemistry", priority: "Low", due: dateString(-1), done: false, notes: "" },
+      { id: 5, title: "Write English essay", subject: "English", priority: "Medium", due: dateString(-2), done: true, notes: "" },
+    ];
+
+    /* ---------- CUSTOM HOOK ---------- */
+    function useLocalStorage(key, initial) {
+      const [value, setValue] = useState(() => {
+        try {
+          const saved = localStorage.getItem(key);
+          return saved ? JSON.parse(saved) : initial;
+        } catch (e) {
+          return initial;
+        }
+      });
+      useEffect(() => {
+        try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+      }, [key, value]);
+      return [value, setValue];
+    }
+
+    /* ---------- NAVBAR ---------- */
+    function Navbar({ page, setPage, theme, toggleTheme }) {
+      const tabs = [
+        ["dashboard", "📊 Dashboard"],
+        ["tasks", "✅ Tasks"],
+      ];
+      return (
+        <nav className="navbar">
+          <h2 className="logo">📚 StudyFlow</h2>
+          <div className="nav-links">
+            {tabs.map(([key, label]) => (
+              <button key={key} className={page === key ? "nav-btn active" : "nav-btn"} onClick={() => setPage(key)}>
+                {label}
+              </button>
+            ))}
+            <button className="nav-btn" onClick={toggleTheme}>{theme === "light" ? "🌙" : "☀️"}</button>
+          </div>
+        </nav>
+      );
+    }
+
+    /* ---------- DASHBOARD ---------- */
+    function Dashboard({ tasks, name, onChangeName, onToggle, goToTasks }) {
+      const total = tasks.length;
+      const completed = tasks.filter((t) => t.done).length;
+      const pending = total - completed;
+      const overdue = tasks.filter(isOverdue).length;
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+      const dueSoon = tasks
+        .filter((t) => !t.done)
+        .sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"))
+        .slice(0, 5);
+
+      const quote = QUOTES[new Date().getDate() % QUOTES.length];
+
+      return (
+        <div className="container">
+          <div className="page-head">
+            <div>
+              <h1>Welcome back, {name} 👋</h1>
+              <p className="muted">{quote}</p>
+              <button className="link-btn" onClick={onChangeName}>Change name</button>
+            </div>
+            <button className="btn" onClick={goToTasks}>+ Add Task</button>
+          </div>
+
+          <div className="stats">
+            <div className="stat"><div className="muted">Total Tasks</div><div className="num">{total}</div></div>
+            <div className="stat green"><div className="muted">Completed</div><div className="num">{completed}</div></div>
+            <div className="stat orange"><div className="muted">Pending</div><div className="num">{pending}</div></div>
+            <div className="stat red"><div className="muted">Overdue</div><div className="num">{overdue}</div></div>
+          </div>
+
+          <div className="panel">
+            <h3>Overall Progress: {percent}%</h3>
+            <div className="bar">
+              <div className="bar-fill" style={{ width: percent + "%", background: "var(--success)" }}></div>
+            </div>
+          </div>
+
+          <div className="two-col">
+            <div className="panel">
+              <h3>Progress by Subject</h3>
+              {Object.keys(SUBJECTS).map((sub) => {
+                const list = tasks.filter((t) => t.subject === sub);
+                if (list.length === 0) return null;
+                const done = list.filter((t) => t.done).length;
+                const pct = Math.round((done / list.length) * 100);
+                return (
+                  <div className="subject-row" key={sub}>
+                    <div className="top"><span>{sub}</span><span className="muted">{done}/{list.length}</span></div>
+                    <div className="bar"><div className="bar-fill" style={{ width: pct + "%", background: SUBJECTS[sub] }}></div></div>
+                  </div>
+                );
+              })}
+              {total === 0 && <p className="muted">No tasks yet.</p>}
+            </div>
+
+            <div className="panel">
+              <h3>Coming Up</h3>
+              {dueSoon.length === 0 && <p className="muted">Nothing pending. Great job! 🎉</p>}
+              {dueSoon.map((t) => (
+                <div className="mini-task" key={t.id}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{t.title}</div>
+                    <div className="muted" style={{ fontSize: "0.85rem" }}>
+                      {t.subject} • {dueText(t.due)}
+                    </div>
+                  </div>
+                  <button className="btn secondary" style={{ padding: "6px 12px" }} onClick={() => onToggle(t.id)}>Done</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ---------- TASK FORM (add + edit) ---------- */
+    function TaskForm({ initial, onSave, onClose }) {
+      const [form, setForm] = useState(
+        initial || { title: "", subject: "Maths", priority: "Medium", due: dateString(1), notes: "" }
+      );
+      const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (form.title.trim() === "") return;
+        onSave({ ...form, title: form.title.trim() });
+      };
+
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{initial ? "Edit Task" : "Add New Task"}</h2>
+            <form className="form" onSubmit={handleSubmit}>
+              <label>Task Title</label>
+              <input name="title" value={form.title} onChange={handleChange} placeholder="e.g. Finish chapter 3 notes" required autoFocus />
+
+              <div className="row">
+                <div>
+                  <label>Subject</label>
+                  <select name="subject" value={form.subject} onChange={handleChange}>
+                    {Object.keys(SUBJECTS).map((s) => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label>Priority</label>
+                  <select name="priority" value={form.priority} onChange={handleChange}>
+                    <option>High</option><option>Medium</option><option>Low</option>
+                  </select>
+                </div>
+              </div>
+
+              <label>Due Date</label>
+              <input type="date" name="due" value={form.due} onChange={handleChange} />
+
+              <label>Notes (optional)</label>
+              <textarea name="notes" rows="3" value={form.notes} onChange={handleChange} />
+
+              <div className="actions">
+                <button type="button" className="btn secondary" onClick={onClose}>Cancel</button>
+                <button type="submit" className="btn">{initial ? "Update" : "Add Task"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ---------- TASK ITEM ---------- */
+    function TaskItem({ task, onToggle, onEdit, onDelete }) {
+      const overdue = isOverdue(task);
+      return (
+        <div className={task.done ? "task done" : "task"} style={{ borderLeftColor: SUBJECTS[task.subject] }}>
+          <input type="checkbox" checked={task.done} onChange={() => onToggle(task.id)} />
+          <div className="info">
+            <div className="title">{task.title}</div>
+            {task.notes && <div className="notes">{task.notes}</div>}
+            <div className="tags">
+              <span className="tag" style={{ background: SUBJECTS[task.subject], color: "white" }}>{task.subject}</span>
+              <span className={"tag p-" + task.priority}>{task.priority}</span>
+              <span className={overdue ? "tag overdue" : "tag due"}>
+                📅 {task.done ? task.due : dueText(task.due)}
+              </span>
+            </div>
+          </div>
+          <button className="icon-btn" title="Edit" onClick={() => onEdit(task)}>✏️</button>
+          <button className="icon-btn" title="Delete" onClick={() => onDelete(task.id)}>🗑️</button>
+        </div>
+      );
+    }
+
+    /* ---------- TASKS PAGE ---------- */
+    function TasksPage({ tasks, onToggle, onAdd, onUpdate, onDelete, onClearDone, openForm, setOpenForm }) {
+      const [search, setSearch] = useState("");
+      const [status, setStatus] = useState("All");
+      const [subject, setSubject] = useState("All");
+      const [sortBy, setSortBy] = useState("due");
+
+      let visible = tasks.filter((t) => {
+        const matchSearch = t.title.toLowerCase().includes(search.toLowerCase());
+        const matchSubject = subject === "All" || t.subject === subject;
+        let matchStatus = true;
+        if (status === "Pending") matchStatus = !t.done;
+        if (status === "Completed") matchStatus = t.done;
+        if (status === "Overdue") matchStatus = isOverdue(t);
+        return matchSearch && matchSubject && matchStatus;
+      });
+
+      visible = [...visible].sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1; // completed go to bottom
+        if (sortBy === "priority") return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+        return (a.due || "9999").localeCompare(b.due || "9999");
+      });
+
+      return (
+        <div className="container">
+          <div className="page-head">
+            <h1>My Tasks</h1>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn secondary" onClick={onClearDone}>Clear completed</button>
+              <button className="btn" onClick={() => setOpenForm({ mode: "add" })}>+ Add Task</button>
+            </div>
+          </div>
+
+          <div className="controls">
+            <input placeholder="🔍 Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <select value={subject} onChange={(e) => setSubject(e.target.value)}>
+              <option value="All">All Subjects</option>
+              {Object.keys(SUBJECTS).map((s) => <option key={s}>{s}</option>)}
+            </select>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="due">Sort: Due date</option>
+              <option value="priority">Sort: Priority</option>
+            </select>
+          </div>
+
+          <div className="chips">
+            {["All", "Pending", "Completed", "Overdue"].map((s) => (
+              <button key={s} className={status === s ? "chip active" : "chip"} onClick={() => setStatus(s)}>{s}</button>
+            ))}
+          </div>
+
+          {visible.length === 0 && <div className="empty">No tasks found. Time to add one! ✨</div>}
+          {visible.map((t) => (
+            <TaskItem
+              key={t.id}
+              task={t}
+              onToggle={onToggle}
+              onEdit={(task) => setOpenForm({ mode: "edit", task })}
+              onDelete={onDelete}
+            />
+          ))}
+
+          {openForm && (
+            <TaskForm
+              initial={openForm.mode === "edit" ? openForm.task : null}
+              onClose={() => setOpenForm(null)}
+              onSave={(data) => {
+                if (openForm.mode === "edit") onUpdate(data);
+                else onAdd(data);
+                setOpenForm(null);
+              }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    /* ---------- MAIN APP ---------- */
+    function App() {
+      const [page, setPage] = useState("dashboard");
+      const [theme, setTheme] = useLocalStorage("sf-theme", "light");
+      const [name, setName] = useLocalStorage("sf-name", "Student");
+      const [tasks, setTasks] = useLocalStorage("sf-tasks", sampleTasks);
+      const [openForm, setOpenForm] = useState(null);
+
+      useEffect(() => {
+        document.documentElement.setAttribute("data-theme", theme);
+      }, [theme]);
+
+      const addTask = (data) => setTasks([{ ...data, id: Date.now(), done: false }, ...tasks]);
+      const updateTask = (data) => setTasks(tasks.map((t) => (t.id === data.id ? { ...t, ...data } : t)));
+      const toggleTask = (id) => setTasks(tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+      const deleteTask = (id) => {
+        if (window.confirm("Delete this task?")) setTasks(tasks.filter((t) => t.id !== id));
+      };
+      const clearDone = () => {
+        if (tasks.some((t) => t.done) && window.confirm("Remove all completed tasks?")) {
+          setTasks(tasks.filter((t) => !t.done));
+        }
+      };
+      const changeName = () => {
+        const n = window.prompt("Enter your name:", name);
+        if (n && n.trim()) setName(n.trim());
+      };
+
+      return (
+        <>
+          <Navbar page={page} setPage={setPage} theme={theme} toggleTheme={() => setTheme(theme === "light" ? "dark" : "light")} />
+
+          {page === "dashboard" && (
+            <Dashboard
+              tasks={tasks}
+              name={name}
+              onChangeName={changeName}
+              onToggle={toggleTask}
+              goToTasks={() => { setPage("tasks"); setOpenForm({ mode: "add" }); }}
+            />
+          )}
+
+          {page === "tasks" && (
+            <TasksPage
+              tasks={tasks}
+              onToggle={toggleTask}
+              onAdd={addTask}
+              onUpdate={updateTask}
+              onDelete={deleteTask}
+              onClearDone={clearDone}
+              openForm={openForm}
+              setOpenForm={setOpenForm}
+            />
+          )}
+
+          <footer className="footer">© 2026 Jaimin • StudyFlow - Built with HTML, CSS, JavaScript & React</footer>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
